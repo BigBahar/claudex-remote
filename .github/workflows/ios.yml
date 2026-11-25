@@ -39,7 +39,8 @@ jobs:
             CLAUDEX_VERSION_CODE=$CODE \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build | grep -E "error:|warning: .*Sources/|BUILD (SUCCEEDED|FAILED)" || true
-          test -d build/Build/Products/Release-iphoneos/ClaudexRemote.app || { echo "::error::the app did not build"; exit 1; }
+          # The grep above hides the build's exit code, so check for the app's binary itself.
+          test -f build/Build/Products/Release-iphoneos/ClaudexRemote.app/ClaudexRemote || { echo "::error::the app did not build"; exit 1; }
 
       - name: Wrap it as an IPA
         working-directory: ios

@@ -26,22 +26,42 @@ extension UIColor {
 /// The Claudex mark: an ember C (Claude) holding a light x (Codex), drawn from the 512-point icon.
 struct XMark: View {
     var size: CGFloat = 28
+
+    // Kept as small, fully typed steps: as one expression the Swift compiler gave up type-checking it.
+    private static func point(_ deg: Double, _ k: CGFloat) -> CGPoint {
+        let a: Double = deg * Double.pi / 180.0
+        let x: Double = 282.7 + 145.0 * cos(a)
+        let y: Double = 256.0 + 145.0 * sin(a)
+        return CGPoint(x: CGFloat(x) * k, y: CGFloat(y) * k)
+    }
+
+    /// The C: an arc of radius 145 around (282.7, 256), open on the right, traced point by point.
+    private static func cPath(_ k: CGFloat) -> Path {
+        var c = Path()
+        let steps: Int = 48
+        for i in 0...steps {
+            let deg: Double = -69.7 - Double(i) / Double(steps) * 220.6
+            let p: CGPoint = point(deg, k)
+            if i == 0 { c.move(to: p) } else { c.addLine(to: p) }
+        }
+        return c
+    }
+
+    private static func xPath(_ k: CGFloat) -> Path {
+        var x = Path()
+        x.move(to: CGPoint(x: 256 * k, y: 196 * k))
+        x.addLine(to: CGPoint(x: 358 * k, y: 316 * k))
+        x.move(to: CGPoint(x: 358 * k, y: 196 * k))
+        x.addLine(to: CGPoint(x: 256 * k, y: 316 * k))
+        return x
+    }
+
     var body: some View {
         Canvas { ctx, s in
-            let k = s.width / 512
-            // The C: an arc of radius 145 around (282.7, 256), open on the right, traced point by point.
-            var c = Path()
-            let steps = 48
-            for i in 0...steps {
-                let a = (-69.7 - Double(i) / Double(steps) * 220.6) * .pi / 180
-                let p = CGPoint(x: (282.7 + 145 * cos(a)) * k, y: (256 + 145 * sin(a)) * k)
-                if i == 0 { c.move(to: p) } else { c.addLine(to: p) }
-            }
-            ctx.stroke(c, with: .color(Theme.ember), style: StrokeStyle(lineWidth: 52 * k, lineCap: .round, lineJoin: .round))
-            var x = Path()
-            x.move(to: CGPoint(x: 256 * k, y: 196 * k)); x.addLine(to: CGPoint(x: 358 * k, y: 316 * k))
-            x.move(to: CGPoint(x: 358 * k, y: 196 * k)); x.addLine(to: CGPoint(x: 256 * k, y: 316 * k))
-            ctx.stroke(x, with: .color(Theme.ink), style: StrokeStyle(lineWidth: 52 * k, lineCap: .round))
+            let k: CGFloat = s.width / 512
+            let line: CGFloat = 52 * k
+            ctx.stroke(XMark.cPath(k), with: .color(Theme.ember), style: StrokeStyle(lineWidth: line, lineCap: .round, lineJoin: .round))
+            ctx.stroke(XMark.xPath(k), with: .color(Theme.ink), style: StrokeStyle(lineWidth: line, lineCap: .round))
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)
