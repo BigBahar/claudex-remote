@@ -19,6 +19,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Builds 1.1 to 1.10 came from the private Claudex repository; this one continues after them.
+      - name: Pick the version
+        run: echo "CODE=$((GITHUB_RUN_NUMBER + 10))" >> "$GITHUB_ENV"
+
       - name: Generate the Xcode project
         working-directory: ios
         run: |
@@ -32,7 +36,7 @@ jobs:
           set -o pipefail
           xcodebuild -project ClaudexRemote.xcodeproj -scheme ClaudexRemote -configuration Release \
             -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
-            CLAUDEX_VERSION_CODE=${{ github.run_number }} \
+            CLAUDEX_VERSION_CODE=$CODE \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build | grep -E "error:|warning: .*Sources/|BUILD (SUCCEEDED|FAILED)" || true
           test -d build/Build/Products/Release-iphoneos/ClaudexRemote.app || { echo "::error::the app did not build"; exit 1; }
@@ -44,7 +48,7 @@ jobs:
           cp -R build/Build/Products/Release-iphoneos/ClaudexRemote.app Payload/
           zip -qry out/claudex-remote.ipa Payload
           cp Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png out/claudex-remote-icon.png
-          echo '{"code": ${{ github.run_number }}, "name": "1.${{ github.run_number }}"}' > out/ios.json
+          echo "{\"code\": $CODE, \"name\": \"1.$CODE\"}" > out/ios.json
           ls -l out
 
       - uses: actions/upload-artifact@v4
@@ -62,7 +66,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f ios/out/*
-          git commit -m 'iOS build ${{ github.run_number }}'
+          git commit -m "iOS build $CODE"
           git push origin "HEAD:refs/heads/ios-build-${{ github.run_id }}"
 
       - name: Launch on the simulator
@@ -72,7 +76,7 @@ jobs:
           xcrun simctl boot "$DEV" || true
           xcrun simctl bootstatus "$DEV" -b
           xcodebuild -project ClaudexRemote.xcodeproj -scheme ClaudexRemote -configuration Debug -sdk iphonesimulator \
-            -destination "id=$DEV" -derivedDataPath simbuild CLAUDEX_VERSION_CODE=${{ github.run_number }} \
+            -destination "id=$DEV" -derivedDataPath simbuild CLAUDEX_VERSION_CODE=$CODE \
             CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build -quiet
           xcrun simctl install "$DEV" simbuild/Build/Products/Debug-iphonesimulator/ClaudexRemote.app
           mkdir -p shots
