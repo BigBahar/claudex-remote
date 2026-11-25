@@ -1,0 +1,50 @@
+# Claudex Remote for iPhone: native SwiftUI, built unsigned on a GitHub macOS runner (.github/workflows/ios.yml)
+# and sideloaded with Silo Store (Uri's SideStore), which re-signs it on the phone. The .xcodeproj is generated
+# by XcodeGen and never committed. The bundle id is fixed for good: a free Apple ID may register only ten
+# App IDs a week, and a changed id is a new app to the phone.
+name: ClaudexRemote
+options:
+  bundleIdPrefix: com.silolabs
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.$(CLAUDEX_VERSION_CODE)"
+    CURRENT_PROJECT_VERSION: "$(CLAUDEX_VERSION_CODE)"
+    CLAUDEX_VERSION_CODE: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_IDENTITY: ""
+targets:
+  ClaudexRemote:
+    type: application
+    platform: iOS
+    sources: [Sources, Resources]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.silolabs.claudex
+        PRODUCT_NAME: ClaudexRemote
+    info:
+      path: Generated/ClaudexRemote-Info.plist
+      properties:
+        CFBundleDisplayName: Claudex
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        ITSAppUsesNonExemptEncryption: false
+        LSApplicationQueriesSchemes: [sidestore, altstore]
+        CFBundleURLTypes:
+          - CFBundleURLName: com.silolabs.claudex.pair
+            CFBundleURLSchemes: [claudex-remote]
+        NSCameraUsageDescription: Claudex scans the QR code on your PC to pair with it.
+        NSLocalNetworkUsageDescription: Claudex talks to your PC over your home network.
+        # The PC is reached by its Tailscale or LAN address over plain HTTP, authenticated by the device token.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
