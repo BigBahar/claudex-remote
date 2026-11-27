@@ -191,7 +191,7 @@ final class AppModel {
     }
 
     func create(_ body: NewSessionBody) async throws -> Session {
-        let s: Session = try await need().post("/api/sessions", body, as: Session.self)
+        let s: Session = try await need().post(body.team == nil ? "/api/sessions" : "/api/cowork", body, as: Session.self)
         if !sessions.contains(where: { $0.id == s.id }) { sessions.insert(s, at: 0) }
         return s
     }

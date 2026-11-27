@@ -14,6 +14,20 @@ struct SessionView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if let flow = session?.cowork {
+                HStack {
+                    ForEach(["plan", "build", "review"], id: \.self) { role in
+                        if let step = flow.team[role] {
+                            VStack(spacing: 3) {
+                                Circle().fill(flow.current == role && flow.state == "running" ? Theme.ember : Theme.line).frame(width: 9, height: 9)
+                                Text(role.capitalized).font(.caption2.weight(.semibold))
+                                Text(Agent(rawValue: step.agent)?.label ?? step.agent).font(.caption2)
+                            }.frame(maxWidth: .infinity)
+                        }
+                    }
+                }.padding(12).foregroundStyle(Theme.muted)
+                    .accessibilityElement(children: .combine)
+            }
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {

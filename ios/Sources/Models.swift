@@ -8,6 +8,7 @@ struct Session: Codable, Identifiable, Hashable {
     var effort: String
     var mode: String
     var cwd: String
+    var noFolder: Bool?
     var repo: String?
     var branch: String?
     var createdAt: Double
@@ -15,12 +16,18 @@ struct Session: Codable, Identifiable, Hashable {
     var status: String
     var unread: Bool?
     var pending: Int?
+    var cowork: CoworkProgress?
 
     /// Sessions are grouped by the project folder the person picked.
-    var project: String { URL(fileURLWithPath: repo ?? cwd).lastPathComponent }
-    var projectPath: String { repo ?? cwd }
+    var project: String { noFolder == true ? "Chats" : URL(fileURLWithPath: repo ?? cwd).lastPathComponent }
+    var projectPath: String { noFolder == true ? "Chats" : (repo ?? cwd) }
     var date: Date { Date(timeIntervalSince1970: updatedAt / 1000) }
     var needsOK: Bool { status == "waiting" || (pending ?? 0) > 0 }
+}
+struct CoworkProgress: Codable, Hashable {
+    var team: [String: TeamMember]
+    var current: String?
+    var state: String
 }
 
 struct Question: Codable, Hashable {

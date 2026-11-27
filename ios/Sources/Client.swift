@@ -101,7 +101,9 @@ struct AnyEncodable: Encodable {
 
 struct NewSessionBody: Encodable {
     var agent: String, model: String, effort: String, mode: String, folder: String, worktree: Bool, prompt: String
+    var team: [String: TeamMember]? = nil
 }
+struct TeamMember: Codable, Hashable { var agent: String; var model: String }
 struct TextBody: Encodable { var text: String }
 struct ModeBody: Encodable { var mode: String }
 struct AnswerBody: Encodable { var eventId: String; var value: AnyEncodable }

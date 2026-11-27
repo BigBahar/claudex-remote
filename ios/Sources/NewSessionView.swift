@@ -11,6 +11,11 @@ struct NewSessionView: View {
     @State private var effort = ""
     @State private var folders: [String] = []
     @State private var folder = ""
+    @State private var chat = false
+    @State private var cowork = false
+    @State private var planner: Agent = .local
+    @State private var builder: Agent = .codex
+    @State private var reviewer: Agent = .claude
     @State private var worktree = false
     @State private var prompt = ""
     @State private var defaults: Defaults?
@@ -21,10 +26,19 @@ struct NewSessionView: View {
         NavigationStack {
             Form {
                 Section("Project") {
-                    Picker("Folder", selection: $folder) { ForEach(folders, id: \.self) { Text(URL(fileURLWithPath: $0).lastPathComponent).tag($0) } }
-                    Toggle("In a new git worktree", isOn: $worktree)
+                    Toggle("Chat without a project", isOn: $chat)
+                    if !chat {
+                        Picker("Folder", selection: $folder) { ForEach(folders, id: \.self) { Text(URL(fileURLWithPath: $0).lastPathComponent).tag($0) } }
+                        Toggle("In a new git worktree", isOn: $worktree)
+                    }
                 }
                 Section("Agent") {
+                    Toggle("Work together", isOn: $cowork)
+                    if cowork {
+                        Picker("Plans", selection: $planner) { ForEach(Agent.allCases) { Text($0.label).tag($0) } }
+                        Picker("Builds", selection: $builder) { ForEach(Agent.allCases) { Text($0.label).tag($0) } }
+                        Picker("Reviews", selection: $reviewer) { ForEach(Agent.allCases) { Text($0.label).tag($0) } }
+                    }
                     Picker("Agent", selection: $agent) { ForEach(Agent.allCases) { Text($0.label).tag($0) } }.pickerStyle(.segmented)
                     if !models.isEmpty { Picker("Model", selection: $model_) { ForEach(models) { Text($0.label).tag($0.id) } } }
                     if let m = models.first(where: { $0.id == model_ }), !m.efforts.isEmpty {
@@ -43,7 +57,7 @@ struct NewSessionView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    if busy { ProgressView() } else { Button("Start") { start() }.disabled(prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || folder.isEmpty) }
+                    if busy { ProgressView() } else { Button("Start") { start() }.disabled(prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (!chat && folder.isEmpty)) }
                 }
             }
             .task {
@@ -66,7 +80,12 @@ struct NewSessionView: View {
 
     private func start() {
         busy = true; error = nil
-        let body = NewSessionBody(agent: agent.rawValue, model: model_, effort: effort, mode: mode.rawValue, folder: folder, worktree: worktree, prompt: prompt)
+        func member(_ agent: Agent) -> TeamMember {
+            let selected = agent == .claude ? defaults?.claudeModel : agent == .codex ? defaults?.codexModel : defaults?.localModel
+            return TeamMember(agent: agent.rawValue, model: selected ?? "")
+        }
+        let team = cowork ? ["plan": member(planner), "build": member(builder), "review": member(reviewer)] : nil
+        let body = NewSessionBody(agent: agent.rawValue, model: model_, effort: effort, mode: mode.rawValue, folder: chat ? "" : folder, worktree: !chat && !cowork && worktree, prompt: prompt, team: team)
         Task {
             do {
                 let s = try await model.create(body)
