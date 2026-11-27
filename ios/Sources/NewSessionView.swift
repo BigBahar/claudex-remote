@@ -29,7 +29,7 @@ struct NewSessionView: View {
                     Toggle("Chat without a project", isOn: $chat)
                     if !chat {
                         Picker("Folder", selection: $folder) { ForEach(folders, id: \.self) { Text(URL(fileURLWithPath: $0).lastPathComponent).tag($0) } }
-                        Toggle("In a new git worktree", isOn: $worktree)
+                        if !cowork { Toggle("In a new git worktree", isOn: $worktree) }
                     }
                 }
                 Section("Agent") {
