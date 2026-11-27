@@ -1,7 +1,16 @@
 import SwiftUI
 
+enum SessionKind: String, CaseIterable, Identifiable {
+    case chat = "Chat", project = "Project", duet = "Duet"
+    var id: String { rawValue }
+}
+
 struct NewSessionView: View {
     var opened: (String) -> Void
+    init(kind: SessionKind = .chat, opened: @escaping (String) -> Void) {
+        self.opened = opened
+        self._kind = State(initialValue: kind)
+    }
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var agent: Agent = .claude
@@ -11,8 +20,9 @@ struct NewSessionView: View {
     @State private var effort = ""
     @State private var folders: [String] = []
     @State private var folder = ""
-    @State private var chat = false
-    @State private var cowork = false
+    @State var kind: SessionKind = .chat
+    private var chat: Bool { kind == .chat }
+    private var cowork: Bool { kind == .duet }
     @State private var planner: Agent = .local
     @State private var builder: Agent = .codex
     @State private var reviewer: Agent = .claude
@@ -25,24 +35,30 @@ struct NewSessionView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Project") {
-                    Toggle("Chat without a project", isOn: $chat)
-                    if !chat {
+                Section("Start") {
+                    Picker("Type", selection: $kind) {
+                        ForEach(SessionKind.allCases) { Text($0.rawValue).tag($0) }
+                    }.pickerStyle(.segmented)
+                    Text(chat ? "Talk with one agent without choosing a project." : cowork ? "Claude, Codex, and Local can take turns on a shared task." : "Work with one agent in a project folder.")
+                        .font(.footnote).foregroundStyle(Theme.muted)
+                }
+                if !chat {
+                    Section("Project") {
                         Picker("Folder", selection: $folder) { ForEach(folders, id: \.self) { Text(URL(fileURLWithPath: $0).lastPathComponent).tag($0) } }
                         if !cowork { Toggle("In a new git worktree", isOn: $worktree) }
                     }
                 }
                 Section("Agent") {
-                    Toggle("Work together", isOn: $cowork)
                     if cowork {
                         Picker("Plans", selection: $planner) { ForEach(Agent.allCases) { Text($0.label).tag($0) } }
                         Picker("Builds", selection: $builder) { ForEach(Agent.allCases) { Text($0.label).tag($0) } }
                         Picker("Reviews", selection: $reviewer) { ForEach(Agent.allCases) { Text($0.label).tag($0) } }
-                    }
-                    Picker("Agent", selection: $agent) { ForEach(Agent.allCases) { Text($0.label).tag($0) } }.pickerStyle(.segmented)
-                    if !models.isEmpty { Picker("Model", selection: $model_) { ForEach(models) { Text($0.label).tag($0.id) } } }
-                    if let m = models.first(where: { $0.id == model_ }), !m.efforts.isEmpty {
-                        Picker("Effort", selection: $effort) { ForEach(m.efforts, id: \.self) { Text($0.capitalized).tag($0) } }
+                    } else {
+                        Picker("Agent", selection: $agent) { ForEach(Agent.allCases) { Text($0.label).tag($0) } }.pickerStyle(.segmented)
+                        if !models.isEmpty { Picker("Model", selection: $model_) { ForEach(models) { Text($0.label).tag($0.id) } } }
+                        if let m = models.first(where: { $0.id == model_ }), !m.efforts.isEmpty {
+                            Picker("Effort", selection: $effort) { ForEach(m.efforts, id: \.self) { Text($0.capitalized).tag($0) } }
+                        }
                     }
                     Picker("Permissions", selection: $mode) { ForEach(Mode.allCases) { Text($0.label).tag($0) } }
                 }

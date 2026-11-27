@@ -4,6 +4,7 @@ struct SessionsView: View {
     @Environment(AppModel.self) private var model
     @Environment(Updates.self) private var updates
     @State private var newSession = false
+    @State private var newKind: SessionKind = .chat
     @State private var settings = false
     @State private var path: [String] = []
 
@@ -16,6 +17,17 @@ struct SessionsView: View {
     var body: some View {
         NavigationStack(path: $path) {
             List {
+                Section {
+                    HStack(spacing: 12) {
+                        Button { newKind = .chat; newSession = true } label: { Label("Chat", systemImage: "bubble.left") }
+                            .frame(maxWidth: .infinity)
+                        Button { newKind = .duet; newSession = true } label: { Label("Duet", systemImage: "point.3.connected.trianglepath.dotted") }
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(model.link != .live)
+                    .listRowBackground(Color.clear)
+                }
                 if case .offline(let m) = model.link { Banner(text: m, action: ("Retry", model.reconnect)) }
                 if model.link == .connecting { HStack { ProgressView(); Text("Connecting to your PC…").foregroundStyle(Theme.muted) }.listRowBackground(Color.clear) }
                 if updates.latest != nil {
@@ -40,11 +52,11 @@ struct SessionsView: View {
             .navigationDestination(for: String.self) { SessionView(id: $0) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button { settings = true } label: { Image(systemName: "gearshape") }.accessibilityLabel("Settings") }
-                ToolbarItem(placement: .topBarTrailing) { Button { newSession = true } label: { Image(systemName: "square.and.pencil") }.accessibilityLabel("New session").disabled(model.link != .live) }
+                ToolbarItem(placement: .topBarTrailing) { Button { newKind = .project; newSession = true } label: { Image(systemName: "square.and.pencil") }.accessibilityLabel("New session").disabled(model.link != .live) }
             }
             .refreshable { model.reconnect(); try? await Task.sleep(nanoseconds: 600_000_000) }
         }
-        .sheet(isPresented: $newSession) { NewSessionView { id in path.append(id) } }
+        .sheet(isPresented: $newSession) { NewSessionView(kind: newKind) { id in path.append(id) } }
         .sheet(isPresented: $settings) { SettingsView() }
     }
 }
